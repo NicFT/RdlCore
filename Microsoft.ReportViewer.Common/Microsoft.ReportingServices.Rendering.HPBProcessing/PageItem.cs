@@ -2390,46 +2390,49 @@ namespace Microsoft.ReportingServices.Rendering.HPBProcessing
 		{
 		}
 
-		internal void WriteInvalidImage(BinaryWriter spbifWriter, PageContext pageContext, GDIImageProps gdiImageProps)
-		{
-			long position = spbifWriter.BaseStream.Position;
-			spbifWriter.Write((byte)42);
-			Hashtable hashtable = pageContext.SharedImages;
-			if (hashtable != null)
-			{
-				object obj = hashtable["InvalidImage"];
-				if (obj != null)
-				{
-					spbifWriter.Write((byte)2);
-					spbifWriter.Write((long)obj);
-					return;
-				}
-			}
-			if (hashtable == null)
-			{
-				hashtable = (pageContext.SharedImages = new Hashtable());
-			}
-			hashtable.Add("InvalidImage", position);
-			spbifWriter.Write((byte)0);
-			System.Drawing.Image image = Microsoft.ReportingServices.InvalidImage.Image;
-			if (image != null)
-			{
-				MemoryStream memoryStream = new MemoryStream();
-				image.Save(memoryStream, image.RawFormat);
-				spbifWriter.Write((byte)2);
-				spbifWriter.Write((int)memoryStream.Length);
-				WriteStreamContent(memoryStream, spbifWriter);
-				if (gdiImageProps == null)
-				{
-					gdiImageProps = new GDIImageProps(image);
-				}
-				image.Dispose();
-			}
-			WriteImageProperties(null, "InvalidImage", spbifWriter, gdiImageProps);
-			spbifWriter.Write(byte.MaxValue);
-		}
+        internal void WriteInvalidImage(BinaryWriter spbifWriter, PageContext pageContext, GDIImageProps gdiImageProps)
+        {
+            long position = spbifWriter.BaseStream.Position;
+            spbifWriter.Write((byte)42);
+            Hashtable hashtable = pageContext.SharedImages;
+            if (hashtable != null)
+            {
+                object obj = hashtable["InvalidImage"];
+                if (obj != null)
+                {
+                    spbifWriter.Write((byte)2);
+                    spbifWriter.Write((long)obj);
+                    return;
+                }
+            }
+            if (hashtable == null)
+            {
+                hashtable = (pageContext.SharedImages = new Hashtable());
+            }
+            hashtable.Add("InvalidImage", position);
+            spbifWriter.Write((byte)0);
+            SkiaSharp.SKBitmap image = Microsoft.ReportingServices.InvalidImage.Image;
+            if (image != null)
+            {
+                using (SkiaSharp.SKImage skImage = SkiaSharp.SKImage.FromBitmap(image))
+                using (SkiaSharp.SKData encoded = skImage.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100))
+                {
+                    byte[] bytes = encoded.ToArray();
+                    spbifWriter.Write((byte)2);
+                    spbifWriter.Write(bytes.Length);
+                    spbifWriter.Write(bytes);
+                }
+                if (gdiImageProps == null)
+                {
+                    gdiImageProps = new GDIImageProps(image, (float)pageContext.DpiX, (float)pageContext.DpiY);
+                }
+                image.Dispose();
+            }
+            WriteImageProperties(null, "InvalidImage", spbifWriter, gdiImageProps);
+            spbifWriter.Write(byte.MaxValue);
+        }
 
-		internal void WriteImage(IImageInstance imageInstance, string resourceName, BinaryWriter spbifWriter, PageContext pageContext, GDIImageProps gdiImage, bool writeShared)
+        internal void WriteImage(IImageInstance imageInstance, string resourceName, BinaryWriter spbifWriter, PageContext pageContext, GDIImageProps gdiImage, bool writeShared)
 		{
 			string text = resourceName;
 			if (imageInstance != null)
@@ -2448,42 +2451,44 @@ namespace Microsoft.ReportingServices.Rendering.HPBProcessing
 			spbifWriter.Write(byte.MaxValue);
 		}
 
-		internal void WriteInvalidImage(RPLImageProps elemProps, PageContext pageContext, GDIImageProps gdiImageProps)
-		{
-			Hashtable hashtable = pageContext.SharedImages;
-			if (hashtable != null)
-			{
-				object obj = hashtable["InvalidImage"];
-				if (obj != null)
-				{
-					elemProps.Image = (RPLImageData)obj;
-					return;
-				}
-			}
-			RPLImageData rPLImageData = new RPLImageData();
-			if (hashtable == null)
-			{
-				hashtable = (pageContext.SharedImages = new Hashtable());
-			}
-			rPLImageData.IsShared = true;
-			hashtable.Add("InvalidImage", rPLImageData);
-			rPLImageData.ImageName = "InvalidImage";
-			System.Drawing.Image image = Microsoft.ReportingServices.InvalidImage.Image;
-			if (image != null)
-			{
-				MemoryStream memoryStream = new MemoryStream();
-				image.Save(memoryStream, image.RawFormat);
-				rPLImageData.ImageData = memoryStream.ToArray();
-				if (gdiImageProps == null)
-				{
-					rPLImageData.GDIImageProps = new GDIImageProps(image);
-				}
-				image.Dispose();
-			}
-			elemProps.Image = rPLImageData;
-		}
+        internal void WriteInvalidImage(RPLImageProps elemProps, PageContext pageContext, GDIImageProps gdiImageProps)
+        {
+            Hashtable hashtable = pageContext.SharedImages;
+            if (hashtable != null)
+            {
+                object obj = hashtable["InvalidImage"];
+                if (obj != null)
+                {
+                    elemProps.Image = (RPLImageData)obj;
+                    return;
+                }
+            }
+            RPLImageData rPLImageData = new RPLImageData();
+            if (hashtable == null)
+            {
+                hashtable = (pageContext.SharedImages = new Hashtable());
+            }
+            rPLImageData.IsShared = true;
+            hashtable.Add("InvalidImage", rPLImageData);
+            rPLImageData.ImageName = "InvalidImage";
+            SkiaSharp.SKBitmap image = Microsoft.ReportingServices.InvalidImage.Image;
+            if (image != null)
+            {
+                using (SkiaSharp.SKImage skImage = SkiaSharp.SKImage.FromBitmap(image))
+                using (SkiaSharp.SKData encoded = skImage.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100))
+                {
+                    rPLImageData.ImageData = encoded.ToArray();
+                }
+                if (gdiImageProps == null)
+                {
+                    rPLImageData.GDIImageProps = new GDIImageProps(image, (float)pageContext.DpiX, (float)pageContext.DpiY);
+                }
+                image.Dispose();
+            }
+            elemProps.Image = rPLImageData;
+        }
 
-		internal void WriteImage(IImageInstance imageInstance, string resourceName, RPLImageProps elemProps, PageContext pageContext, GDIImageProps gdiImage)
+        internal void WriteImage(IImageInstance imageInstance, string resourceName, RPLImageProps elemProps, PageContext pageContext, GDIImageProps gdiImage)
 		{
 			string text = resourceName;
 			if (imageInstance != null)

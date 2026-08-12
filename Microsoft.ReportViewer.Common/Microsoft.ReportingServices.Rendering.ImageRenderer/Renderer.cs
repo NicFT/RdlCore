@@ -44,24 +44,24 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 		// construction to first access means merely loading the Renderer type (which
 		// happens for every renderer, including PDF) doesn't require GDI+; only the
 		// Windows-only ImageWriter path that actually reads ImageResources does.
-		private static Dictionary<string, Bitmap> s_imageResources;
+		private static Dictionary<string, SkiaSharp.SKBitmap> s_imageResources;
 
-		internal static Dictionary<string, Bitmap> ImageResources => s_imageResources ??= CreateImageResources();
+		internal static Dictionary<string, SkiaSharp.SKBitmap> ImageResources => s_imageResources ??= CreateImageResources();
 
-		private static Dictionary<string, Bitmap> CreateImageResources()
-		{
-			var emptyImage = new Bitmap(2, 2);
-			var resources = new Dictionary<string, Bitmap>(10);
-			resources.Add("toggleMinus", emptyImage);
-			resources.Add("togglePlus", emptyImage);
-			resources.Add("unsorted", emptyImage);
-			resources.Add("sortAsc", emptyImage);
-			resources.Add("sortDesc", emptyImage);
-			resources.Add("InvalidImage", Microsoft.ReportingServices.InvalidImage.Image);
-			return resources;
-		}
+        private static Dictionary<string, SkiaSharp.SKBitmap> CreateImageResources()
+        {
+            var emptyImage = new SkiaSharp.SKBitmap(2, 2);
+            var resources = new Dictionary<string, SkiaSharp.SKBitmap>(10);
+            resources.Add("toggleMinus", emptyImage);
+            resources.Add("togglePlus", emptyImage);
+            resources.Add("unsorted", emptyImage);
+            resources.Add("sortAsc", emptyImage);
+            resources.Add("sortDesc", emptyImage);
+            resources.Add("InvalidImage", Microsoft.ReportingServices.InvalidImage.Image);
+            return resources;
+        }
 
-		internal Renderer(bool physicalPagination)
+        internal Renderer(bool physicalPagination)
 		{
 			PhysicalPagination = physicalPagination;
 		}

@@ -8,6 +8,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using SkiaSharp;
 
 namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 {
@@ -256,7 +257,9 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 
 		internal void GetDefaultImage(out PortableImage image)
 		{
-			string key = "__int__InvalidImage";
+            throw new PlatformNotSupportedException("The default/placeholder image fallback is not yet supported on non-Windows platforms.");
+			/*
+            string key = "__int__InvalidImage";
 			if (m_cachedImages.TryGetValue(key, out image))
 			{
 				return;
@@ -281,7 +284,7 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 			}
 			bitmap2.SetResolution(m_commonGraphics.DpiX, m_commonGraphics.DpiY);
 			image = PortableImage.FromGdiImage(bitmap2);
-			m_cachedImages.Add(key, image);
+			m_cachedImages.Add(key, image);*/
 		}
 
 		internal override void DrawDynamicImage(string imageName, Stream imageStream, long imageDataOffset, RectangleF position)

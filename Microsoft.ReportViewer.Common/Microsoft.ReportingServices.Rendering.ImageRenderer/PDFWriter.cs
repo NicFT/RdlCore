@@ -1239,7 +1239,7 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 					Height = metadata.Height,
 					HorizontalResolution = metadata.HorizontalResolution,
 					VerticalResolution = metadata.VerticalResolution,
-					RawFormat = ImageFormat.Bmp
+					RawFormat = SKEncodedImageFormat.Bmp/* ImageFormat.Bmp*/
 				};
 				m_images.Add(key, value);
 			}

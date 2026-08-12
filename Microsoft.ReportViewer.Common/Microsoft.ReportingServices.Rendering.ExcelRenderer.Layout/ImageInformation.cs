@@ -237,11 +237,26 @@ namespace Microsoft.ReportingServices.Rendering.ExcelRenderer.Layout
 				m_height = image.GDIImageProps.Height;
 				m_verticalResolution = image.GDIImageProps.VerticalResolution;
 				m_horizontalResolution = image.GDIImageProps.HorizontalResolution;
-				m_imageFormat = ImageFormatTypeHelper.FromSystemDrawingImageFormat(image.GDIImageProps.RawFormat);
-			}
+                m_imageFormat = FromSkiaImageFormat(image.GDIImageProps.RawFormat);
+            }
 		}
-
-		internal void SetMimeType(string mimeType)
+        private static ImageFormatType FromSkiaImageFormat(SKEncodedImageFormat format)
+        {
+            switch (format)
+            {
+                case SKEncodedImageFormat.Png:
+                    return ImageFormatType.Png;
+                case SKEncodedImageFormat.Jpeg:
+                    return ImageFormatType.Jpeg;
+                case SKEncodedImageFormat.Gif:
+                    return ImageFormatType.Gif;
+                case SKEncodedImageFormat.Bmp:
+                    return ImageFormatType.Bmp;
+                default:
+                    return ImageFormatType.Png; // fallback seguro
+            }
+        }
+        internal void SetMimeType(string mimeType)
 		{
 			if (mimeType == null)
 			{
