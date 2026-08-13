@@ -1,35 +1,43 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <AssemblyName>Microsoft.ReportViewer.NETCore</AssemblyName>
-    <RootNamespace>Microsoft.ReportViewer.NETCore</RootNamespace>
-    <PackageId>RdlCore.NETCore</PackageId>
-    <Version>15.1.33</Version>
-    <Authors>Microsoft, lkosson, ShadowedMists</Authors>
-    <Company>Microsoft</Company>
-    <Product>RdlCore</Product>
-    <Description>SQL Server Reporting Services engine decompiled and recompiled for .NET 10. Based on ReportViewer 15.0.1404.0</Description>
-    <PackageProjectUrl>https://github.com/ShadowedMists/RdlCore</PackageProjectUrl>
-    <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\RdlCore.snk</AssemblyOriginatorKeyFile>
-    <!-- NU1510 flags System.Security.Cryptography.Xml below as an apparently-unused direct
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<AssemblyName>Microsoft.ReportViewer.NETCore</AssemblyName>
+		<RootNamespace>Microsoft.ReportViewer.NETCore</RootNamespace>
+		<PackageId>TCS.RdlCore</PackageId>
+		<Version>1.0.0</Version>
+		<Authors>Microsoft, lkosson, ShadowedMists, NicFT</Authors>
+		<Company>Microsoft</Company>
+		<Product>RdlCore</Product>
+		<Description>SQL Server Reporting Services engine decompiled and recompiled for .NET 10. Based on ReportViewer 15.0.1404.0</Description>
+		<PackageProjectUrl>https://github.com/ShadowedMists/RdlCore</PackageProjectUrl>
+		<SignAssembly>True</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\RdlCore.snk</AssemblyOriginatorKeyFile>
+		<!-- NU1510 flags System.Security.Cryptography.Xml below as an apparently-unused direct
          reference, but it's a deliberate pin (see commit af09b43): System.ServiceModel.Http
          transitively pulls in a vulnerable 10.0.0 release, and this direct reference forces
          resolution to the patched 10.0.10 instead. Per-PackageReference NoWarn doesn't
          suppress this particular restore warning, hence the project-level NoWarn here. -->
-    <NoWarn>$(NoWarn);NU1510</NoWarn>
-  </PropertyGroup>
+		<NoWarn>$(NoWarn);NU1510</NoWarn>
+		<PackageOutputPath>$(MSBuildThisFileDirectory)..\..\NugetLocal</PackageOutputPath>
+		<IncludeSymbols>false</IncludeSymbols>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.ServiceModel.Http" Version="10.0.652802" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="System.ServiceModel.Http" Version="10.0.652802" />
+		<PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
+		<PackageReference Include="SkiaSharp" Version="3.119.1" />
+		<PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
+		<PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.1" />
+		<PackageReference Include="HarfBuzzSharp" Version="8.3.1.2" />
+		<PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.1.2" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Microsoft.ReportViewer.Common\Microsoft.ReportViewer.Common.csproj" />
-    <ProjectReference Include="..\Microsoft.ReportViewer.DataVisualization\Microsoft.ReportViewer.DataVisualization.csproj" />
-    <ProjectReference Include="..\Microsoft.ReportViewer.ProcessingObjectModel\Microsoft.ReportViewer.ProcessingObjectModel.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Microsoft.ReportViewer.Common\Microsoft.ReportViewer.Common.csproj" />
+		<ProjectReference Include="..\Microsoft.ReportViewer.DataVisualization\Microsoft.ReportViewer.DataVisualization.csproj" />
+		<ProjectReference Include="..\Microsoft.ReportViewer.ProcessingObjectModel\Microsoft.ReportViewer.ProcessingObjectModel.csproj" />
+	</ItemGroup>
 
 </Project>
