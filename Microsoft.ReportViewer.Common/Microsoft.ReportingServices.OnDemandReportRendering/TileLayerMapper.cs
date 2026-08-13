@@ -145,7 +145,16 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
 			{
 				return null;
 			}
-			return System.Drawing.Image.FromStream(tileData);
+			try
+			{
+				return System.Drawing.Image.FromStream(tileData);
+			}
+			catch (DllNotFoundException) when (!System.OperatingSystem.IsWindows())
+			{
+				// On non-Windows platforms (e.g., Linux), System.Drawing.Image.FromStream fails due to GDI+ unavailability.
+				// Return null to allow report rendering to continue without the tile.
+				return null;
+			}
 		}
 
 		private System.Drawing.Image GetEmbeddedTile(MapTileLayer mapTileLayer, string url)
@@ -156,7 +165,16 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
 				{
 					using (MemoryStream stream = new MemoryStream(Convert.FromBase64String(mapTile.TileData)))
 					{
-						return System.Drawing.Image.FromStream(stream);
+						try
+						{
+							return System.Drawing.Image.FromStream(stream);
+						}
+						catch (DllNotFoundException) when (!System.OperatingSystem.IsWindows())
+						{
+							// On non-Windows platforms (e.g., Linux), System.Drawing.Image.FromStream fails due to GDI+ unavailability.
+							// Return null to allow report rendering to continue without the tile.
+							return null;
+						}
 					}
 				}
 			}

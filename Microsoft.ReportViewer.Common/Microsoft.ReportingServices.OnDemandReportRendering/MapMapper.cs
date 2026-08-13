@@ -2201,14 +2201,23 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
 			{
 				return "";
 			}
-			System.Drawing.Image image = System.Drawing.Image.FromStream(new MemoryStream(imageData, writable: false));
-			if (image == null)
+			try
 			{
+				System.Drawing.Image image = System.Drawing.Image.FromStream(new MemoryStream(imageData, writable: false));
+				if (image == null)
+				{
+					return "";
+				}
+				string text = m_coreMap.NamedImages.Count.ToString(CultureInfo.InvariantCulture);
+				m_coreMap.NamedImages.Add(new NamedImage(text, image));
+				return text;
+			}
+			catch (DllNotFoundException) when (!System.OperatingSystem.IsWindows())
+			{
+				// On non-Windows platforms (e.g., Linux), System.Drawing.Image.FromStream fails due to GDI+ unavailability.
+				// Return empty string to allow report rendering to continue without the marker image.
 				return "";
 			}
-			string text = m_coreMap.NamedImages.Count.ToString(CultureInfo.InvariantCulture);
-			m_coreMap.NamedImages.Add(new NamedImage(text, image));
-			return text;
 		}
 
 		internal ResizeMode GetImageResizeMode(MapMarkerImage mapMarkerImage)

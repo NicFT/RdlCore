@@ -1892,19 +1892,37 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 			return value2;
 		}
 
-		private static void WriteGlyph(Microsoft.ReportingServices.Rendering.RichText.TextRun textRun, StringBuilder sb, PDFFont pdfFont, int glyphIndex)
-		{
-			ushort num = (ushort)textRun.GlyphData.GlyphScriptShapeData.Glyphs[glyphIndex];
-			MapGlyphToUnicodeChar(pdfFont.AddUniqueGlyph(num, (float)textRun.GlyphData.ScaledAdvances[glyphIndex] * pdfFont.EMGridConversion), textRun, glyphIndex);
-			if (num == ushort.MaxValue)
-			{
-				num = 34;
-			}
-			WriteHex(sb, num >> 8);
-			WriteHex(sb, num & 0xFF);
-		}
+        private static void WriteGlyph(Microsoft.ReportingServices.Rendering.RichText.TextRun textRun, StringBuilder sb, PDFFont pdfFont, int glyphIndex)
+        {
+            ushort num = (ushort)textRun.GlyphData.GlyphScriptShapeData.Glyphs[glyphIndex];
 
-		private static List<int> WriteVerticallyStackedText(FontCache fontCache, Microsoft.ReportingServices.Rendering.RichText.TextRun textRun, StringBuilder sb, PDFFont pdfFont)
+            float rawAdvance = (float)textRun.GlyphData.ScaledAdvances[glyphIndex];
+            float width1000;
+
+            if (pdfFont.SkiaTypeface != null)
+            {
+                // Caminho cross-platform (Skia/HarfBuzz): o avanço bruto vem em pixels,
+                // no mesmo tamanho de fonte usado para o shaping (run.CachedFont.SkiaFont.Font.Size).
+                // Precisa ser normalizado para o espaço de 1000 unidades-por-em do PDF,
+                // exatamente como WriteCompositeText já faz.
+                float fontSizePixels = textRun.CachedFont.SkiaFont.Font.Size;
+                width1000 = (fontSizePixels != 0f) ? (rawAdvance * 1000f / fontSizePixels) : 0f;
+            }
+            else
+            {
+                // Caminho Windows/GDI+ original - comportamento inalterado.
+                width1000 = rawAdvance * pdfFont.EMGridConversion;
+            }
+
+            MapGlyphToUnicodeChar(pdfFont.AddUniqueGlyph(num, width1000), textRun, glyphIndex);
+            if (num == ushort.MaxValue)
+            {
+                num = 34;
+            }
+            WriteHex(sb, num >> 8);
+            WriteHex(sb, num & 0xFF);
+        }
+        private static List<int> WriteVerticallyStackedText(FontCache fontCache, Microsoft.ReportingServices.Rendering.RichText.TextRun textRun, StringBuilder sb, PDFFont pdfFont)
 		{
 			List<int> list = null;
 			int glyphCount = textRun.GlyphData.GlyphScriptShapeData.GlyphCount;
@@ -1999,16 +2017,27 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 					sb.Append(text);
 				}
 				sb.Append(") ");
-				if (!pdfFont.InternalFont)
-				{
-					for (int k = 0; k < textRun.GlyphData.GlyphScriptShapeData.GlyphCount; k++)
-					{
-						ushort glyph = (ushort)textRun.GlyphData.GlyphScriptShapeData.Glyphs[k];
-						MapGlyphToUnicodeChar(pdfFont.AddUniqueGlyph(glyph, (float)textRun.GlyphData.ScaledAdvances[k] * pdfFont.EMGridConversion), textRun, k);
-					}
-				}
-			}
-			sb.Append("Tj ");
+                if (!pdfFont.InternalFont)
+                {
+                    for (int k = 0; k < textRun.GlyphData.GlyphScriptShapeData.GlyphCount; k++)
+                    {
+                        ushort glyph = (ushort)textRun.GlyphData.GlyphScriptShapeData.Glyphs[k];
+                        float rawAdvanceK = (float)textRun.GlyphData.ScaledAdvances[k];
+                        float width1000K;
+                        if (pdfFont.SkiaTypeface != null)
+                        {
+                            float fontSizePixelsK = textRun.CachedFont.SkiaFont.Font.Size;
+                            width1000K = (fontSizePixelsK != 0f) ? (rawAdvanceK * 1000f / fontSizePixelsK) : 0f;
+                        }
+                        else
+                        {
+                            width1000K = rawAdvanceK * pdfFont.EMGridConversion;
+                        }
+                        MapGlyphToUnicodeChar(pdfFont.AddUniqueGlyph(glyph, width1000K), textRun, k);
+                    }
+                }
+            }
+            sb.Append("Tj ");
 		}
 
 		private static void MapGlyphToUnicodeChar(PDFFont.GlyphData glyphData, Microsoft.ReportingServices.Rendering.RichText.TextRun textRun, int glyphIndex)
