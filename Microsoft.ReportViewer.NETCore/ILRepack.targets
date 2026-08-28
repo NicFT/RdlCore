@@ -1,0 +1,34 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> 
+  <Target Name="ILRepacker" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'"> 
+    <ItemGroup> 
+      <InputAssemblies Include="$(TargetPath)" /> 
+      <InputAssemblies Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('System.ServiceModel')) and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Identity)').Contains('\runtimes\'))" /> 
+    </ItemGroup> 
+
+    <ILRepack 
+        AllowDuplicateResources="false" 
+        DebugInfo="true"
+        Internalize="true" 
+        ExcludeInternalizeSerializable="true" 
+        Parallel="true" 
+        InputAssemblies="@(InputAssemblies)" 
+        OutputFile="$(TargetPath)" 
+        LibraryPath="$(TargetDir)"
+        TargetKind="SameAsPrimaryAssembly" /> 
+  </Target> 
+
+  <!-- The dependencies merged above still get copied to the publish folder by MSBuild's
+       own publish pipeline (it computes the files-to-publish list before ILRepacker runs).
+       Remove those now-redundant, already-internalized DLLs so only the merged
+       Microsoft.ReportViewer.NETCore.dll (and any intentionally excluded assemblies,
+       e.g. System.ServiceModel.*) ship in the publish output. -->
+  <Target Name="ILRepackerCleanPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release' and '$(PublishDir)' != ''">
+    <ItemGroup>
+      <_ILRepackMergedFile Include="@(InputAssemblies)" Condition="'%(Identity)' != '$(TargetPath)'" />
+      <_ILRepackMergedFileInPublishDir Include="$(PublishDir)%(_ILRepackMergedFile.Filename)%(_ILRepackMergedFile.Extension)" />
+      <_ILRepackMergedFileInPublishDir Include="$(PublishDir)%(_ILRepackMergedFile.Filename).pdb" />
+    </ItemGroup>
+
+    <Delete Files="@(_ILRepackMergedFileInPublishDir)" TreatErrorsAsWarnings="true" />
+  </Target>
+</Project> 

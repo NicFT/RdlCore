@@ -22,9 +22,14 @@
 		<PackageOutputPath>$(MSBuildThisFileDirectory)..\..\NugetLocal</PackageOutputPath>
 		<IncludeSymbols>false</IncludeSymbols>
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.46">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="System.ServiceModel.Http" Version="10.0.652802" />
 		<PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
 		<PackageReference Include="SkiaSharp" Version="3.119.1" />
@@ -39,5 +44,5 @@
 		<ProjectReference Include="..\Microsoft.ReportViewer.DataVisualization\Microsoft.ReportViewer.DataVisualization.csproj" />
 		<ProjectReference Include="..\Microsoft.ReportViewer.ProcessingObjectModel\Microsoft.ReportViewer.ProcessingObjectModel.csproj" />
 	</ItemGroup>
-
+	<Import Project="ILRepack.targets" />
 </Project>
