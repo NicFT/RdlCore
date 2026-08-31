@@ -1,133 +1,187 @@
-<p align="center">
-  <img src="assets/rdlcore-hero.png" alt="RdlCore" width="360">
-</p>
-
 # RdlCore
-
 > **Internal tool. Not distributed externally.** This is a fork maintained for our own use, not a public open-source project. See the licensing notice below and the [License](#license) section before using it.
 
-**A cross-platform .NET rendering engine for RDL/RDLC reports** — the format historically produced by SQL Server Reporting Services and Report Designer. RdlCore lets you load, process, and render `.rdlc`/RDL report definitions to PDF, Excel, Word, HTML, CSV, XML, and image formats on Windows, Linux, and macOS, from ASP.NET Core, console apps, services, or WinForms desktop applications — no SQL Server Reporting Services installation required.
+# RdlCore Edition
 
-> **Licensing notice:** Large parts of this codebase originate from decompiling a proprietary Microsoft product. That code is **not** covered by an open-source license, and no license granted by this project can extend one to it. See [License](#license) below before using this project in anything you redistribute. This is not legal advice — if that matters to your use case, consult your own counsel.
+This project is a **fork of RdlCore**, based on the work and modifications made by **ShadowedMists**, which itself is a fork of **lkosson/reportviewercore**.
 
-## Acknowledgements
+The goal of this fork is to provide a fully functional RDLC/RDL reporting engine for **.NET 10**, supporting both **Windows** and **Linux** environments, while removing legacy GDI+ dependencies and fixing multiple issues discovered during the migration to a true cross-platform architecture.
 
-RdlCore is a fork of **[Łukasz Kosson](https://github.com/lkosson)**'s [reportviewercore](https://github.com/lkosson/reportviewercore), which decompiled and ported Microsoft's Report Viewer for WinForms to .NET Core. Every renderer in this repository — Excel, PDF, Word, Chart, Gauge, and the RDL processing engine itself — originates from that project. This fork's own work is limited to removing the remaining Windows-only dependencies so the engine can run in our Linux containers.
+---
 
-## Why this exists
+# Main Features and Improvements
 
-Our reporting stack depended on RDL/RDLC report definitions rendered through Report Viewer, which is tied to Windows and GDI+. When we moved our product to Linux containers to reduce cloud hosting costs, that engine stopped working, and we temporarily dropped PDF export and reduced Excel export to a raw-data dump. This fork exists to restore that functionality on Linux so we can re-enable it internally, reducing OPEX.
+## Linux Compatibility
 
-This is an incremental effort. Each rendering engine is migrated from direct GDI+/Windows dependencies to a small set of platform-neutral interfaces (an `IImageProvider`, an `IRenderSurface`, and similar seams), with a platform-specific implementation registered behind each — Windows keeps its original GDI+ path unchanged, while Linux and macOS get a SkiaSharp-, ImageSharp-, or ClosedXML-backed equivalent. Where a real architectural wall exists (a handful of Windows-only primitives with no cross-platform equivalent, documented below), we say so plainly rather than pretend it's solved.
+Several modifications were implemented to allow report generation on Linux without relying on Windows-only APIs.
 
-## What works today
+Key improvements include:
 
-* RDLC file loading, parsing, and compiling
-* Local and remote (Report Server / SOAP) data sources
-* Parameters, expressions, and the full RDL expression language (VB-based, compiled via Roslyn)
-* WinForms report preview control
-* All rendering formats listed below, on Windows; the majority on Linux and macOS as well — see the support matrix
-* MSChart (2D and 3D) and Gauge report items
+- Removal of remaining GDI+ dependencies in document generation paths.
+- Migration of image processing to **SkiaSharp**.
+- Cross-platform image loading and metadata handling.
+- HarfBuzz integration and native library support.
+- Full PDF and Word document generation on Linux.
+- Improved font handling using SkiaSharp typefaces.
 
-## Supported rendering formats
+---
 
-| Format | Windows | Linux | macOS |
-| --- | --- | --- | --- |
-| PDF | Yes | Yes | Not yet tested |
-| HTML5 / HTML4.0 / MHTML | Yes | Yes | Not yet tested |
-| EXCELOPENXML (Excel Open XML) | Yes | Yes | Not yet tested |
-| EXCEL (Excel 97/2003) | Yes | Yes | Not yet tested |
-| WORDOPENXML (Word Open XML) | Yes | Yes | Not yet tested |
-| WORD (Word 97/2003) | Yes | No — Windows-only OLE Structured Storage dependency | Not yet tested |
-| CSV | Yes | Yes | Not yet tested |
-| XML | Yes | Yes | Not yet tested |
-| IMAGE (TIFF/EMF) | Yes | No — not yet started | Not yet tested |
+## Word Renderer Fixes
 
-Chart and Gauge report items render through the same cross-platform path as the rest of the engine (Skia-backed on Linux/macOS) and are usable inside any of the formats above. Map report items are Windows-only today; that migration is deliberately deferred (see `docs/decisions.md`).
+A major issue prevented Word (.docx) generation on Linux due to indirect usage of GDI+ APIs.
 
-For the detailed, continuously-updated breakdown — including exactly which code paths route through which backend, and precisely what's blocked and why — see [docs/platform-support.md](docs/platform-support.md).
+### Fixes
 
-## Known permanent limitations
+- Replaced image metadata extraction based on System.Drawing.Image.
+- Introduced platform-aware image processing through:
+  - ImageProviderFactory
+  - CrossPlatformImageProvider
+- Eliminated Image.FromStream() dependency in Linux execution paths.
 
-A small number of gaps are architectural, not "not ported yet":
+### Result
 
-* **EMF/Metafile export** (Chart's `SaveIntoMetafile`, IMAGE format's EMF output) needs a raw Windows HDC (`Graphics.GetHdc()`) with no cross-platform equivalent.
-* **WORD (binary Word 97/2003) container writing** uses real Windows COM interop (OLE Structured Storage) with no cross-platform equivalent. Use WORDOPENXML on Linux/macOS instead.
-* **Expression sandboxing.** There is no isolation between report expression code and the host process — this was true of the original Reporting Services CodeDom design and remains true under Roslyn. Do not load and render reports from untrusted sources. See `tasks/expression-compiler-modernization.md` for the full reasoning.
-* **Spatial SQL types** (`Microsoft.SqlServer.Types`/`SqlGeography`) are .NET Framework-only and unavailable in .NET Core; reports depending on them won't load.
-* **Interactive web report preview** (the WebForms-era browser preview UI) was never ported — it's tightly coupled to WebForms/ASP.NET architecture that has no ASP.NET Core equivalent. `HTML5`/`HTML4.0` rendering formats (including a no-JavaScript-required HTML5 mode) are available as a substitute.
-* **WinForms control designer support** is not available. Add the `ReportViewer` control programmatically instead — see [docs/usage-guide.md](docs/usage-guide.md#6-interactive-preview-in-winforms-reportviewer-control).
+Word document generation now works correctly on both Windows and Linux.
 
-## Getting started
+---
 
-**For step-by-step instructions and sample code** covering local reports, report-server reports, and rendering to HTML/Excel/PDF, see [docs/usage-guide.md](docs/usage-guide.md).
+## PDF Renderer Fixes
 
-This is not published to any package feed. Reference the project you need directly (project reference or internal build output), depending on your application type:
+### HarfBuzz Support
 
-| Scenario | Project | Namespace |
-| --- | --- | --- |
-| ASP.NET Core, console apps, services, headless rendering | `Microsoft.ReportViewer.NETCore` | `Microsoft.Reporting.NETCore` |
-| WinForms desktop app with interactive preview | `Microsoft.ReportViewer.WinForms` | `Microsoft.Reporting.WinForms` |
+- Added support for libHarfBuzzSharp.so.
+- Corrected package compatibility between SkiaSharp, SkiaSharp.HarfBuzz and HarfBuzzSharp.
 
-Assembly and namespace names are unchanged from the upstream `ReportViewerCore` project on purpose, so our existing applications can move to this fork as a drop-in replacement without code changes.
+### Text Rendering Fixes
 
-### Designing reports
+A critical issue was discovered where generated PDFs displayed all characters overlapping each other.
 
-Visual Studio doesn't include Report Designer by default. Install Microsoft's **[RDLC Report Designer](https://marketplace.visualstudio.com/items?itemName=ProBITools.MicrosoftRdlcReportDesignerforVisualStudio-18001)** extension (VS2019) or **[RDLC Report Designer 2022](https://marketplace.visualstudio.com/items?itemName=ProBITools.MicrosoftRdlcReportDesignerforVisualStudio2022)** (VS2022).
+#### Root Cause
 
-The dataset wizard won't discover classes from a .NET Core/.NET project (and `.datasource` files aren't supported), so add a hand-built or generated `.xsd` describing the types you want to bind to your reports:
+Glyph advances were written to the PDF using pixel units rather than the 1000-units-per-em coordinate space required by the PDF specification.
 
-```csharp
-var types = new[] { typeof(ReportItemClass1), typeof(ReportItemClass2), typeof(ReportItemClass3) };
-var xri = new System.Xml.Serialization.XmlReflectionImporter();
-var xss = new System.Xml.Serialization.XmlSchemas();
-var xse = new System.Xml.Serialization.XmlSchemaExporter(xss);
-foreach (var type in types)
-{
-    var xtm = xri.ImportTypeMapping(type);
-    xse.ExportTypeMapping(xtm);
-}
-using var sw = new System.IO.StreamWriter("ReportItemSchemas.xsd", false, Encoding.UTF8);
-for (int i = 0; i < xss.Count; i++)
-{
-    var xs = xss[i];
-    xs.Id = "ReportItemSchemas";
-    xs.Write(sw);
-}
+#### Fix
+
+Implemented proper normalization of glyph widths generated through the SkiaSharp/HarfBuzz text rendering pipeline.
+
+#### Result
+
+- Correct character spacing.
+- Proper text layout.
+- Visual output matching the Windows implementation.
+
+---
+
+## Font Handling Improvements
+
+- Migration to SKTypeface font resolution.
+- Cross-platform font fallback support.
+- Improved PDF font embedding.
+- Better Unicode and complex text shaping support.
+
+---
+
+# Building the Project
+
+## Important
+
+**Do not use the Visual Studio Build command to create distributable binaries.**
+
+Always use the .NET CLI.
+
+### Publish (Recommended)
+
+```bash
+dotnet publish -c Release
 ```
 
-After adding `ReportItemSchemas.xsd` to your project, Report Designer will offer a new datasource called `ReportItemSchemas` you can use when building datasets.
+For Linux:
 
-### Running on Linux/macOS
+```bash
+dotnet publish -c Release -r linux-x64 --self-contained false
+```
 
-Cross-platform rendering (PDF, HTML, Excel, Word Open XML, CSV, XML, Chart, Gauge) works natively — no Wine, no Windows compatibility shims. Just reference `Microsoft.ReportViewer.NETCore` and run.
+This guarantees:
 
-If you also need the small subset of formats still gated to Windows (binary WORD, IMAGE/TIFF/EMF), you'll need to run on an actual Windows host or container until those are ported — see the limitations above.
+- Proper dependency resolution.
+- Inclusion of SkiaSharp native libraries.
+- Inclusion of HarfBuzz native libraries.
+- Correct runtime asset generation.
+- Correct runtimes directory structure.
 
-## Architecture
+---
 
-RdlCore's cross-platform work follows a Ports & Adapters pattern: a small interface for each Windows-coupled contract (image decoding, 2D drawing surfaces, font metrics), one adapter backed by the original GDI+/Windows implementation, and one backed by a portable library (SkiaSharp, ImageSharp, ClosedXML, PdfSharpCore, HarfBuzz). A factory selects the right adapter at runtime based on the current OS.
+# Linux Requirements
 
-* [docs/rendering-abstractions.md](docs/rendering-abstractions.md) — renderer interfaces and the Chart/Gauge Ports & Adapters design
-* [docs/architecture-map.md](docs/architecture-map.md) — end-to-end render flow
-* [docs/platform-support.md](docs/platform-support.md) — current Windows/Linux/macOS support matrix and known gaps
-* [docs/decisions.md](docs/decisions.md) — architecture decisions and why
-* [docs/coding-standards.md](docs/coding-standards.md) — engineering conventions and migration lessons learned
-* [docs/renderer-extension-guide.md](docs/renderer-extension-guide.md) — how to add another renderer implementation
-* [docs/troubleshooting.md](docs/troubleshooting.md) / [docs/build-and-test.md](docs/build-and-test.md) / [docs/examples.md](docs/examples.md) — supporting reference docs
+```bash
+sudo apt update
 
-`TODO.md` tracks current priorities and links every active task; `tasks/*.md` files hold the working detail for anything still in progress.
+sudo apt install -y \
+    fontconfig \
+    libfontconfig1
+```
 
-## Provenance
+---
 
-Source code originates from decompiling Microsoft Report Viewer for WinForms (version 15.0.1404.0, via ILSpy) — Reporting Services' original client-side rendering engine. The original CodeDom/System.CodeDom Visual Basic compilation (unavailable on .NET Core) has been replaced with the Roslyn Visual Basic compiler; references to .NET Framework-only assemblies unavailable on .NET Core (e.g. `Microsoft.SqlServer.Types`) have been removed along with the functionality that depended on them. Source formatting is intentionally left as ILSpy produced it, rather than reformatted, to keep diffs against the original decompilation meaningful.
+# Windows Fonts on Linux
 
-`Microsoft.ReportViewer.WinForms` is close to a one-to-one recompilation of the original WinForms ReportViewer. `Microsoft.ReportViewer.NETCore` is a heavily stripped-down variant suitable for web applications, web services, and batch processing, with no WinForms UI dependency.
+## Highly Recommended
 
-## License
+To achieve visual consistency between reports generated on Windows and Linux, Microsoft fonts should be installed on the Linux server.
 
-**No open-source license is granted over the Microsoft-derived portions of this codebase, because this project does not hold copyright over them.** The core rendering engine — the RDL processing pipeline, the WinForms/NETCore report objects, and the Excel/PDF/Word/Chart/Gauge renderers inherited from the original decompilation — is a derivative work of Microsoft's proprietary Report Viewer for WinForms. Reporting Services is a free-to-use Microsoft product, but "free to use" is not the same as "licensed for redistribution of modified derivative works," and Microsoft has not published terms that clearly permit it. Decompiling it for local, personal compatibility purposes may be legal depending on your jurisdiction; redistributing a modified version — which is what using this repository necessarily involves — is a separate question this project cannot answer on your behalf. Applying an MIT/Apache/GPL-style license header to this code would not change that; it would only misrepresent that such rights exist.
+Commonly used fonts include:
 
-The parts of this repository written directly by its contributors and not derived from Microsoft's decompiled source — the cross-platform rendering adapters (Skia/ImageSharp/ClosedXML/PdfSharpCore backends), the associated interfaces and factories, tests, and documentation — are original work, but are layered on top of and depend on the Microsoft-derived core described above, so they cannot be extracted and used independently under a separate license in any way that matters in practice.
+- Arial
+- Calibri
+- Tahoma
+- Segoe UI
+- Times New Roman
+- Verdana
 
-**Use this repository at your own risk.** If you plan to redistribute binaries built from it, embed it in a commercial product, or otherwise need legal certainty about your rights to do so, consult your own legal counsel — this document is not a substitute for that.
+Without these fonts installed, SkiaSharp will use fallback fonts which may lead to:
+
+- Layout differences
+- Text alignment differences
+- Different line wrapping
+- Different text sizes
+- Visual differences between Windows and Linux generated documents
+
+### Installing Fonts
+
+```bash
+sudo mkdir -p /usr/share/fonts/truetype/msfonts
+```
+
+Copy the desired .ttf files into that directory and rebuild the cache:
+
+```bash
+sudo fc-cache -f -v
+```
+
+Verify installed fonts:
+
+```bash
+fc-list
+```
+
+---
+
+# Validated Environment
+
+- .NET 10
+- Windows 11
+- Ubuntu Server
+- SkiaSharp 3.119.1
+- SkiaSharp.HarfBuzz 3.119.1
+- HarfBuzzSharp 8.3.1.2
+
+---
+
+# Credits
+
+This project is based on the excellent work provided by:
+
+- Microsoft ReportViewer
+- lkosson/reportviewercore
+- ShadowedMists/RdlCore
+
+Additional Linux compatibility fixes, PDF rendering improvements, Word rendering improvements, and cross-platform adaptations were implemented by **NicFT** for use with modern .NET 10 environments.
