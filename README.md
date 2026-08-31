@@ -1,7 +1,7 @@
 # RdlCore
 > **Internal tool. Not distributed externally.** This is a fork maintained for our own use, not a public open-source project. See the licensing notice below and the [License](#license) section before using it.
 
-# RdlCore TCS Edition
+# RdlCore Edition
 
 This project is a **fork of RdlCore**, based on the work and modifications made by **ShadowedMists**, which itself is a fork of **lkosson/reportviewercore**.
 
