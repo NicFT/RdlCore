@@ -18786,7 +18786,7 @@ namespace Microsoft.ReportingServices.ReportProcessing
 								fieldsImpl.SetFieldIsMissing(i);
 								fieldsImpl[i] = new FieldImpl(DataFieldStatus.IsMissing, reportProcessingException_FieldError.Message, field);
 								flag3 = true;
-								m_processingContext.ErrorContext.Register(ProcessingErrorCode.rsMissingFieldInDataSet, Severity.Warning, ObjectType.DataSet, m_dataSet.Name, "Field", field.Name.MarkAsModelInfo());
+								//m_processingContext.ErrorContext.Register(ProcessingErrorCode.rsMissingFieldInDataSet, Severity.Warning, ObjectType.DataSet, m_dataSet.Name, "Field", field.Name.MarkAsModelInfo());
 							}
 							if (!flag3)
 							{
@@ -18797,11 +18797,11 @@ namespace Microsoft.ReportingServices.ReportProcessing
 								fieldsImpl.SetFieldErrorRegistered(i);
 								if (DataFieldStatus.UnSupportedDataType == reportProcessingException_FieldError.Status)
 								{
-									m_processingContext.ErrorContext.Register(ProcessingErrorCode.rsDataSetFieldTypeNotSupported, Severity.Warning, ObjectType.DataSet, m_dataSet.Name, "Field", field.Name.MarkAsModelInfo());
+									//m_processingContext.ErrorContext.Register(ProcessingErrorCode.rsDataSetFieldTypeNotSupported, Severity.Warning, ObjectType.DataSet, m_dataSet.Name, "Field", field.Name.MarkAsModelInfo());
 								}
 								else
 								{
-									m_processingContext.ErrorContext.Register(ProcessingErrorCode.rsErrorReadingDataSetField, Severity.Warning, ObjectType.DataSet, m_dataSet.Name, "Field", field.Name.MarkAsModelInfo(), reportProcessingException_FieldError.Message);
+									//m_processingContext.ErrorContext.Register(ProcessingErrorCode.rsErrorReadingDataSetField, Severity.Warning, ObjectType.DataSet, m_dataSet.Name, "Field", field.Name.MarkAsModelInfo(), reportProcessingException_FieldError.Message);
 								}
 							}
 						}

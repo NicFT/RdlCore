@@ -260,8 +260,10 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 			{
 				return;
 			}
-			SizeF size = new SizeF(ConvertPixelsToPDFUnits(image.GdiProperties.Width, m_imageDpiX), ConvertPixelsToPDFUnits(image.GdiProperties.Height, m_imageDpiY));
-			StringBuilder stringBuilder = new StringBuilder();
+
+            SizeF size = new SizeF(ConvertPixelsToPDFUnits(image.GdiProperties.Width, m_imageDpiX), ConvertPixelsToPDFUnits(image.GdiProperties.Height, m_imageDpiY));
+
+            StringBuilder stringBuilder = new StringBuilder();
 			if (repeat == RPLFormat.BackgroundRepeatTypes.Clip)
 			{
 				RectangleF bounds = ConvertToPDFUnits(position);

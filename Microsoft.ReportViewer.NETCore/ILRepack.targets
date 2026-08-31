@@ -2,7 +2,7 @@
   <Target Name="ILRepacker" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'"> 
     <ItemGroup> 
       <InputAssemblies Include="$(TargetPath)" /> 
-      <InputAssemblies Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('System.ServiceModel')) and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Identity)').Contains('\runtimes\'))" /> 
+      <InputAssemblies Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('System.ServiceModel')) and '%(ReferenceCopyLocalPaths.Filename)' != 'Microsoft.ReportViewer.Common' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Identity)').Contains('\runtimes\'))" /> 
     </ItemGroup> 
 
     <ILRepack 

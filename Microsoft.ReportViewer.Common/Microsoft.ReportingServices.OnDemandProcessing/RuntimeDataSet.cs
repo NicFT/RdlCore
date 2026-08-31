@@ -460,7 +460,7 @@ namespace Microsoft.ReportingServices.OnDemandProcessing
 				orCreateFieldInfo.Missing = true;
 				recordField = null;
 				flag = true;
-				m_odpContext.ErrorContext.Register(ProcessingErrorCode.rsMissingFieldInDataSet, Severity.Warning, Microsoft.ReportingServices.ReportProcessing.ObjectType.DataSet, m_dataSet.Name, "Field", aFieldName.MarkAsModelInfo());
+				//m_odpContext.ErrorContext.Register(ProcessingErrorCode.rsMissingFieldInDataSet, Severity.Warning, Microsoft.ReportingServices.ReportProcessing.ObjectType.DataSet, m_dataSet.Name, "Field", aFieldName.MarkAsModelInfo());
 			}
 			if (!flag)
 			{
@@ -478,11 +478,11 @@ namespace Microsoft.ReportingServices.OnDemandProcessing
 					{
 						m_odpContext.ErrorSavingSnapshotData = true;
 					}
-					m_odpContext.ErrorContext.Register(ProcessingErrorCode.rsDataSetFieldTypeNotSupported, Severity.Warning, Microsoft.ReportingServices.ReportProcessing.ObjectType.DataSet, m_dataSet.Name, "Field", aFieldName.MarkAsModelInfo());
+					//m_odpContext.ErrorContext.Register(ProcessingErrorCode.rsDataSetFieldTypeNotSupported, Severity.Warning, Microsoft.ReportingServices.ReportProcessing.ObjectType.DataSet, m_dataSet.Name, "Field", aFieldName.MarkAsModelInfo());
 				}
 				else
 				{
-					m_odpContext.ErrorContext.Register(ProcessingErrorCode.rsErrorReadingDataSetField, Severity.Warning, Microsoft.ReportingServices.ReportProcessing.ObjectType.DataSet, m_dataSet.Name, "Field", aFieldName.MarkAsModelInfo(), aException.Message);
+					//m_odpContext.ErrorContext.Register(ProcessingErrorCode.rsErrorReadingDataSetField, Severity.Warning, Microsoft.ReportingServices.ReportProcessing.ObjectType.DataSet, m_dataSet.Name, "Field", aFieldName.MarkAsModelInfo(), aException.Message);
 				}
 			}
 			return recordField;
