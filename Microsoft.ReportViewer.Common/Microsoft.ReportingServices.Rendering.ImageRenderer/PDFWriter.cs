@@ -1420,6 +1420,12 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
 				for (int g = 0; g < shapeData.GlyphCount; g++)
 				{
 					ushort glyphId = unchecked((ushort)shapeData.Glyphs[g]);
+					if (glyphId == 0)
+					{
+						// .notdef - see WriteGlyph's matching check for why this is skipped
+						// rather than drawn as the font's visible missing-glyph box.
+						continue;
+					}
 					float width1000 = rawAdvances[g] * 1000f / fontSizePoints;
 					PDFFont.GlyphData added = pdfFont.AddUniqueGlyph(glyphId, width1000);
 					if (added != null && !isRtlItem)
@@ -1897,6 +1903,22 @@ namespace Microsoft.ReportingServices.Rendering.ImageRenderer
         private static void WriteGlyph(Microsoft.ReportingServices.Rendering.RichText.TextRun textRun, StringBuilder sb, PDFFont pdfFont, int glyphIndex)
         {
             ushort num = (ushort)textRun.GlyphData.GlyphScriptShapeData.Glyphs[glyphIndex];
+
+            if (pdfFont.IsComposite && num == 0)
+            {
+                // Glyph id 0 is always .notdef per the OpenType/TrueType spec - never a real
+                // mapped character. It shows up here for stray control characters (most
+                // commonly a lone '\r' left at the end of a hard line break by
+                // Paragraph.GetSubRunForLine, which only splits on '\n' and keeps any
+                // preceding '\r' attached to that line's TextRun.Text) that have no glyph in
+                // an embedded CID TrueType/CFF subset. The old GDI+ WinAnsi path rendered
+                // these invisibly (no ink); Identity-H CID fonts have no such silent
+                // fallback and instead draw the font's visible missing-glyph box. Skipping
+                // the glyph entirely here reproduces the old, effectively invisible result
+                // without touching character-index-based bookkeeping (line breaking,
+                // selection, GetWidth) that still counts '\r'/'\n' as part of the run.
+                return;
+            }
 
             float rawAdvance = (float)textRun.GlyphData.ScaledAdvances[glyphIndex];
             float width1000;
