@@ -274,7 +274,11 @@ namespace Microsoft.ReportingServices.Rendering.ExcelRenderer.Layout
 			if (m_imageData != null && m_imageData.Length != 0L)
 			{
 				m_imageData.Position = 0L;
-				using SKCodec codec = SKCodec.Create(m_imageData);
+				// SKCodec.Create(Stream) takes ownership of the stream and closes it on dispose;
+				// m_imageData is reused afterwards (and shared across cells via sharedImageCache),
+				// so wrap it in a non-owning SKManagedStream.
+				using SKManagedStream skStream = new SKManagedStream(m_imageData, disposeManagedStream: false);
+				using SKCodec codec = SKCodec.Create(skStream);
 				if (codec != null)
 				{
 					m_imageData.Position = 0L;

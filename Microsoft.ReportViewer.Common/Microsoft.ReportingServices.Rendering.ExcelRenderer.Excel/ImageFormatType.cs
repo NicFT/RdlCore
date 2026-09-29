@@ -91,7 +91,9 @@ namespace Microsoft.ReportingServices.Rendering.ExcelRenderer.Excel
 			try
 			{
 				imageStream.Position = 0;
-				using SKCodec codec = SKCodec.Create(imageStream);
+				// Non-owning wrapper: SKCodec.Create(Stream) would close the caller's stream on dispose.
+				using SKManagedStream skStream = new SKManagedStream(imageStream, disposeManagedStream: false);
+				using SKCodec codec = SKCodec.Create(skStream);
 				imageStream.Position = 0;
 				if (codec == null)
 					return ImageFormatType.Unknown;

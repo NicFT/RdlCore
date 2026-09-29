@@ -3577,18 +3577,14 @@ namespace Microsoft.ReportingServices.Rendering.ExcelRenderer.Layout
                 imageInformation = new ImageInformation();
                 imageInformation.ImageName = "InvalidImage";
 
-                SKBitmap image = Microsoft.ReportingServices.InvalidImage.Image;
+                // Skia cannot encode BMP (Encode(Bmp) returns null), so write the embedded
+                // BMP bytes directly, as the original GDI+ code produced a BMP stream.
+                byte[] image = Microsoft.ReportingServices.InvalidImage.ImageData;
 
                 if (image != null)
                 {
                     Stream stream = excel.CreateStream("InvalidImage");
-
-                    using (SKImage skImage = SKImage.FromBitmap(image))
-                    using (SKData data = skImage.Encode(SKEncodedImageFormat.Bmp, 100))
-                    {
-                        data.SaveTo(stream);
-                    }
-
+                    stream.Write(image, 0, image.Length);
                     stream.Position = 0;
 
                     imageInformation.ImageData = stream;
