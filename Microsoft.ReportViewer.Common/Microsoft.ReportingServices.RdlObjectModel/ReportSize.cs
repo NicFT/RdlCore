@@ -1,7 +1,6 @@
 using Microsoft.ReportingServices.RdlObjectModel.Serialization;
 using System;
 using System.ComponentModel;
-using System.Drawing;
 using System.Globalization;
 using System.Xml;
 using System.Xml.Schema;
@@ -22,7 +21,11 @@ namespace Microsoft.ReportingServices.RdlObjectModel
 
 		internal const int DefaultDecimalDigits = 5;
 
-		private static float m_dotsPerInch;
+		// Fixed at the GDI+ default bitmap resolution instead of probing a GDI+ Bitmap/Graphics, which
+		// throws DllNotFoundException ('gdiplus.dll') on Linux and broke compiling any RDL 2005 report
+		// (UpgradeImpl2005.AdjustBodyWhitespace converts sizes through pixels). That pixel round trip
+		// cancels the DPI out, so the value only needs to be consistent, not device-accurate.
+		private const float DefaultDotsPerInch = 96f;
 
 		private static readonly ReportSize m_empty;
 
@@ -65,23 +68,7 @@ namespace Microsoft.ReportingServices.RdlObjectModel
 			}
 		}
 
-		public static float DotsPerInch
-		{
-			get
-			{
-				if (m_dotsPerInch == 0f)
-				{
-					using (Bitmap image = new Bitmap(1, 1))
-					{
-						using (Graphics graphics = Graphics.FromImage(image))
-						{
-							m_dotsPerInch = graphics.DpiX;
-						}
-					}
-				}
-				return m_dotsPerInch;
-			}
-		}
+		public static float DotsPerInch => DefaultDotsPerInch;
 
 		public static ReportSize Empty => m_empty;
 

@@ -247,5 +247,48 @@ namespace Microsoft.ReportViewer.DataVisualization.VisualRegressionTests
         [TestMethod]
         public void Doughnut3DChart_RendersViaSkia_MatchesBaseline() =>
             AssertMatchesBaseline(SampleCharts.BuildDoughnut3DChart(), "Doughnut3DChart.Skia.png");
+
+        // A chart Title whose font was never set (or was only described via SetFontDescriptor,
+        // as ChartMapper does where GDI+ can't build the RDL font) must measure/draw without
+        // ever reading Title.Font - that getter lazily constructs a GDI+ Font, which threw
+        // DllNotFoundException(gdiplus.dll) on Linux and made the chart vanish from PDF/Word.
+        private static Chart BuildTitledPieChart(out Title title)
+        {
+            var chart = new Chart { Width = 400, Height = 300 };
+            title = chart.Titles.Add("teste");
+            chart.ChartAreas.Add("Default");
+            var series = chart.Series.Add("Estados");
+            series.ChartType = SeriesChartType.Pie;
+            series.Points.AddXY("SP", 12);
+            series.Points.AddXY("RJ", 7);
+            series.Points.AddXY("MG", 5);
+            return chart;
+        }
+
+        private static object GetTitleFontField(Title title) =>
+            typeof(Title).GetField("font", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(title);
+
+        [TestMethod]
+        public void TitleWithoutFont_RendersViaSkia_WithoutConstructingGdiFont()
+        {
+            using var chart = BuildTitledPieChart(out var title);
+            var png = RenderViaSkia(chart);
+            Assert.IsTrue(png.Length > 0);
+            Assert.IsNull(GetTitleFontField(title), "Title.Font getter was read during Skia rendering (would construct a GDI+ Font).");
+        }
+
+        [TestMethod]
+        public void TitleWithFontDescriptor_RendersViaSkia_UsingDescribedFont()
+        {
+            using var defaultChart = BuildTitledPieChart(out _);
+            var defaultPng = RenderViaSkia(defaultChart);
+
+            using var describedChart = BuildTitledPieChart(out var title);
+            title.SetFontDescriptor("Arial", 20f, System.Drawing.FontStyle.Bold);
+            var describedPng = RenderViaSkia(describedChart);
+
+            Assert.IsNull(GetTitleFontField(title), "Title.Font getter was read during Skia rendering (would construct a GDI+ Font).");
+            CollectionAssert.AreNotEqual(defaultPng, describedPng, "The described 20pt bold font had no effect on the rendered title.");
+        }
     }
 }

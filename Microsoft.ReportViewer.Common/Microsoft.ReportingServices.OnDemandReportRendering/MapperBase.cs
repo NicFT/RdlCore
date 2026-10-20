@@ -94,6 +94,8 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
 			// available at all (Linux under .NET 10 - see docs/platform-support.md).
 			internal string DefaultFontFamily => m_defaultFontFamily;
 
+			internal float DefaultFontSize => m_defaultFontSize;
+
 			public Font GetFontFromCache(int id, string familyName, float size, FontStyle style)
 			{
 				KeyInfo key = new KeyInfo(id, familyName, size, style);
@@ -349,6 +351,23 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
 		protected Font GetFont(Style style, StyleInstance styleInstance)
 		{
 			return m_fontCache.GetFont(MappingHelper.GetStyleFontFamily(style, styleInstance, m_fontCache.DefaultFontFamily), MappingHelper.GetStyleFontSize(style, styleInstance), MappingHelper.GetStyleFontStyle(MappingHelper.GetStyleFontStyle(style, styleInstance), MappingHelper.GetStyleFontWeight(style, styleInstance), MappingHelper.GetStyleFontTextDecoration(style, styleInstance)));
+		}
+
+		// Resolves the same family/size/style GetFont/GetDefaultFont would build, without
+		// constructing a System.Drawing.Font - for platforms where that construction fails
+		// (Linux under .NET 10), so the RDL font can still reach a Skia-backed renderer.
+		protected void GetFontDescriptor(Style style, StyleInstance styleInstance, out string familyName, out float size, out FontStyle fontStyle)
+		{
+			if (style == null)
+			{
+				familyName = m_fontCache.DefaultFontFamily;
+				size = m_fontCache.DefaultFontSize;
+				fontStyle = MappingHelper.GetStyleFontStyle(FontStyles.Normal, FontWeights.Normal, TextDecorations.None);
+				return;
+			}
+			familyName = MappingHelper.GetStyleFontFamily(style, styleInstance, m_fontCache.DefaultFontFamily);
+			size = MappingHelper.GetStyleFontSize(style, styleInstance);
+			fontStyle = MappingHelper.GetStyleFontStyle(MappingHelper.GetStyleFontStyle(style, styleInstance), MappingHelper.GetStyleFontWeight(style, styleInstance), MappingHelper.GetStyleFontTextDecoration(style, styleInstance));
 		}
 
 		private static void ValidatePositiveValue(double value)

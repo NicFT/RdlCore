@@ -57,6 +57,14 @@ namespace Microsoft.Reporting.Chart.WebForms
 
 		private Font font;
 
+		// Font requested by the report definition when a real System.Drawing.Font could not be
+		// constructed (non-Windows) - see SetFontDescriptor/GetFontResource.
+		private string fontDescriptorFamily;
+
+		private float fontDescriptorSize;
+
+		private FontStyle fontDescriptorStyle;
+
 		private Color color = Color.Black;
 
 		private ContentAlignment alignment = ContentAlignment.MiddleCenter;
@@ -503,8 +511,43 @@ namespace Microsoft.Reporting.Chart.WebForms
 			set
 			{
 				font = value;
+				fontDescriptorFamily = null;
 				Invalidate(invalidateTitleOnly: false);
 			}
+		}
+
+		/// <summary>
+		/// Records the report-defined font by family/size/style only, for platforms where
+		/// System.Drawing.Font cannot be constructed (Linux under .NET 10 - see
+		/// docs/platform-support.md). <see cref="GetFontResource"/> builds it through the
+		/// active rendering backend instead, so the RDL font is preserved without GDI+.
+		/// </summary>
+		internal void SetFontDescriptor(string familyName, float sizeInPoints, FontStyle style)
+		{
+			font = null;
+			fontDescriptorFamily = familyName;
+			fontDescriptorSize = sizeInPoints;
+			fontDescriptorStyle = style;
+			Invalidate(invalidateTitleOnly: false);
+		}
+
+		/// <summary>
+		/// Returns an IChartFont for this title without ever constructing a System.Drawing.Font
+		/// when none was explicitly set - same pattern as Legend.GetBaseFontResource
+		/// (tasks/chart-default-font-cross-platform.md). Reading the concrete <see cref="Font"/>
+		/// property here would lazily construct a GDI+ Font and crash non-Windows platforms.
+		/// </summary>
+		private IChartFont GetFontResource(ChartGraphics chartGraph)
+		{
+			if (font != null)
+			{
+				return chartGraph.ResourceFactory.WrapFont(font);
+			}
+			if (fontDescriptorFamily != null)
+			{
+				return chartGraph.ResourceFactory.CreateFont(fontDescriptorFamily, fontDescriptorSize, fontDescriptorStyle);
+			}
+			return chartGraph.ResourceFactory.CreateFont(ChartPicture.GetDefaultFontFamilyName(), 8f);
 		}
 
 		[SRCategory("CategoryAttributeAppearance")]
@@ -774,7 +817,7 @@ namespace Microsoft.Reporting.Chart.WebForms
 				return;
 			}
 			CommonElements common = chart.chartPicture.common;
-			IChartFont bridgedTitleFont = chartGraph.ResourceFactory.WrapFont(Font);
+			IChartFont bridgedTitleFont = GetFontResource(chartGraph);
 			string text = Text;
 			if (chart != null && chart.LocalizeTextHandler != null)
 			{
@@ -937,7 +980,7 @@ namespace Microsoft.Reporting.Chart.WebForms
 					break;
 				case TextStyle.Frame:
 				{
-					IChartFont bridgedFrameFont = chartGraph.ResourceFactory.CreateFont(Font.FontFamily.Name, Font.Size * 1.3f, Font.Style, Font.Unit);
+					IChartFont bridgedFrameFont = chartGraph.ResourceFactory.CreateFont(bridgedTitleFont.FontFamilyName, bridgedTitleFont.SizeInPoints * 1.3f, bridgedTitleFont.Style, GraphicsUnit.Point);
 					using IGraphicsPath graphicsPath = chartGraph.ResourceFactory.CreatePath();
 					graphicsPath.AddString(ChartGraphics.GetStackedText(text), bridgedFrameFont, relative2, stringFormat);
 					graphicsPath.CloseAllFigures();
@@ -1022,7 +1065,7 @@ namespace Microsoft.Reporting.Chart.WebForms
 			relative.Width -= 2f * elementSpacing;
 			relative.Height -= 2f * elementSpacing;
 			relative = chartGraph.GetAbsoluteSize(relative);
-			IChartFont bridgedFont = chartGraph.ResourceFactory.WrapFont(Font);
+			IChartFont bridgedFont = GetFontResource(chartGraph);
 			SizeF size = chartGraph.MeasureString(Text.Replace("\\n", "\n"), bridgedFont, relative, stringFormat, GetTextOrientation());
 			if (BackGroundIsVisible)
 			{

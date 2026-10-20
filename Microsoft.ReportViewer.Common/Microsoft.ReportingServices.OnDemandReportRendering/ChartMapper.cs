@@ -4957,6 +4957,13 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
 			{
 				title.Font = font;
 			}
+			else
+			{
+				// No GDI+ on this platform: hand the RDL font to the title by description so
+				// it is still rendered at the report's family/size/weight via Skia.
+				GetFontDescriptor(style, style == null ? null : chartTitle.Instance.Style, out string familyName, out float size, out FontStyle fontStyle);
+				title.SetFontDescriptor(familyName, size, fontStyle);
+			}
 		}
 
 		private void RenderLegendTitleFont(ChartLegendTitle chartLegendTitle, Microsoft.Reporting.Chart.WebForms.Legend legend)

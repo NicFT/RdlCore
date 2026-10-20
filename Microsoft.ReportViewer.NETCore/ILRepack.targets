@@ -2,7 +2,25 @@
   <Target Name="ILRepacker" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'"> 
     <ItemGroup> 
       <InputAssemblies Include="$(TargetPath)" /> 
-      <InputAssemblies Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('System.ServiceModel')) and '%(ReferenceCopyLocalPaths.Filename)' != 'Microsoft.ReportViewer.Common' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Identity)').Contains('\runtimes\'))" /> 
+      <!-- Microsoft.CodeAnalysis* (Roslyn) assemblies must NOT be merged: Roslyn resolves its own
+           dependent assemblies (e.g. Microsoft.CodeAnalysis.VisualBasic -> Microsoft.CodeAnalysis)
+           by exact assembly name/version at runtime. Internalizing them into the merged output
+           still leaves that external reference in place, so the file must remain standalone next
+           to the merged DLL (this is why the nuspec declares them as NuGet dependencies instead). -->
+      <!-- Microsoft.ReportViewer.ProcessingObjectModel and Microsoft.ReportViewer.DataVisualization
+           must also stay standalone, for the same reason Microsoft.ReportViewer.Common is already
+           excluded below: none of these three project-reference assemblies are merged/rewritten by
+           ILRepack, so their IL still contains external references to each other's original,
+           unmodified assembly identity (e.g. Common.dll -> "Microsoft.ReportViewer.
+           ProcessingObjectModel, Version=15.0.0.0, ..." and Common.dll -> "Microsoft.ReportViewer.
+           DataVisualization, Version=15.0.0.0, ..." for the Microsoft.Reporting.Rendering/
+           Microsoft.ReportingServices types it consumes). If any of those assemblies gets
+           internalized into the merged NETCore.dll instead of staying a standalone file, the
+           un-merged assembly's calls into it fail at runtime with FileNotFoundException (as seen
+           via ReportRuntime/EnsureExecutionSession during report processing). Any future
+           ProjectReference added alongside Common/DataVisualization/ProcessingObjectModel should
+           be evaluated for the same risk before being left mergeable. -->
+      <InputAssemblies Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('System.ServiceModel')) and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('Microsoft.CodeAnalysis')) and '%(ReferenceCopyLocalPaths.Filename)' != 'Microsoft.ReportViewer.Common' and '%(ReferenceCopyLocalPaths.Filename)' != 'Microsoft.ReportViewer.ProcessingObjectModel' and '%(ReferenceCopyLocalPaths.Filename)' != 'Microsoft.ReportViewer.DataVisualization' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Identity)').Contains('\runtimes\'))" /> 
     </ItemGroup> 
 
     <ILRepack 

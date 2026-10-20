@@ -39,6 +39,35 @@ namespace Microsoft.Reporting.Chart.WebForms.Rendering.Skia
 			NativeFont = new SKFont(typeface, sizeInPoints * PointsToPixels);
 		}
 
-		public void Dispose() => NativeFont.Dispose();
+		private SKFont scaledFont;
+
+		private float scaledFontDpi;
+
+		/// <summary>
+		/// The native font sized for a surface rendered at <paramref name="dpi"/>. GDI+ draws
+		/// point-sized fonts at the target bitmap's resolution (<c>Bitmap.SetResolution</c>), so a
+		/// chart rendered at e.g. 300 DPI for PDF gets proportionally larger text in pixels;
+		/// <see cref="NativeFont"/> alone is fixed at 96 DPI and made chart text ~3x too small there.
+		/// </summary>
+		internal SKFont GetNativeFont(float dpi)
+		{
+			if (dpi <= 0f || dpi == 96f)
+			{
+				return NativeFont;
+			}
+			if (scaledFont == null || scaledFontDpi != dpi)
+			{
+				scaledFont?.Dispose();
+				scaledFont = new SKFont(NativeFont.Typeface, SizeInPoints * dpi / 72f);
+				scaledFontDpi = dpi;
+			}
+			return scaledFont;
+		}
+
+		public void Dispose()
+		{
+			scaledFont?.Dispose();
+			NativeFont.Dispose();
+		}
 	}
 }

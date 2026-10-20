@@ -1,5 +1,6 @@
 using Microsoft.ReportingServices.Common;
 using Microsoft.ReportingServices.ReportProcessing;
+using SkiaSharp;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -91,6 +92,12 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
 
 		internal static MemoryStream CreateExceptionImage(Exception exception, int width, int height, float dpiX, float dpiY)
 		{
+			// GDI+ cannot construct anything on non-Windows (docs/platform-support.md), and a
+			// failure here returns null, which made a failed chart vanish silently from PDF/Word.
+			if (!OperatingSystem.IsWindows())
+			{
+				return CreateExceptionImageSkia(exception, width, height, dpiX, dpiY);
+			}
 			Bitmap bitmap = null;
 			Graphics graphics = null;
 			Brush brush = null;
@@ -166,6 +173,71 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
 					bitmap.Dispose();
 					bitmap = null;
 				}
+			}
+		}
+
+		// SkiaSharp equivalent of the GDI+ path above: white box, 1pt black border, the innermost
+		// exception message word-wrapped inside, encoded as PNG.
+		private static MemoryStream CreateExceptionImageSkia(Exception exception, int width, int height, float dpiX, float dpiY)
+		{
+			try
+			{
+				if (width <= 0 || height <= 0)
+				{
+					return null;
+				}
+				using SKBitmap bitmap = new SKBitmap(width, height);
+				using (SKCanvas canvas = new SKCanvas(bitmap))
+				{
+					canvas.Clear(SKColors.White);
+					float penX = (float)MappingHelper.ToPixels(new ReportSize("1pt"), dpiX);
+					float penY = (float)MappingHelper.ToPixels(new ReportSize("1pt"), dpiY);
+					using (SKPaint borderPaint = new SKPaint { Color = SKColors.Black, Style = SKPaintStyle.Stroke, StrokeWidth = Math.Max(penX, penY), IsAntialias = true })
+					{
+						canvas.DrawRect(penX / 2f, penY / 2f, width - penX, height - penY, borderPaint);
+					}
+					float fontSizePixels = MappingHelper.DefaultFontSize * dpiY / 72f;
+					using SKTypeface typeface = SKTypeface.FromFamilyName(MappingHelper.DefaultFontFamily) ?? SKTypeface.Default;
+					using SKFont font = new SKFont(typeface, fontSizePixels);
+					using SKPaint textPaint = new SKPaint { Color = SKColors.Black, IsAntialias = true };
+					float maxWidth = width - 2f * penX;
+					float lineHeight = font.Spacing;
+					float y = penY - font.Metrics.Ascent;
+					string line = string.Empty;
+					foreach (string word in GetInnerMostException(exception).Message.Split(' '))
+					{
+						string candidate = (line.Length == 0) ? word : (line + " " + word);
+						if (line.Length > 0 && font.MeasureText(candidate) > maxWidth)
+						{
+							canvas.DrawText(line, penX, y, SKTextAlign.Left, font, textPaint);
+							y += lineHeight;
+							line = word;
+						}
+						else
+						{
+							line = candidate;
+						}
+					}
+					if (line.Length > 0)
+					{
+						canvas.DrawText(line, penX, y, SKTextAlign.Left, font, textPaint);
+					}
+				}
+				using SKImage image = SKImage.FromBitmap(bitmap);
+				using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+				MemoryStream memoryStream = new MemoryStream();
+				data.SaveTo(memoryStream);
+				memoryStream.Position = 0L;
+				return memoryStream;
+			}
+			catch (Exception ex)
+			{
+				if (AsynchronousExceptionDetection.IsStoppingException(ex))
+				{
+					throw;
+				}
+				Global.Tracer.Trace(TraceLevel.Verbose, ex.Message);
+				return null;
 			}
 		}
 

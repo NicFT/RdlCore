@@ -1,0 +1,4 @@
+# Copilot Instructions
+
+## Project Guidelines
+- In RdlCore.NETCore.csproj's ILRepack.targets, any assembly directly referenced by the non-merged project references (Microsoft.ReportViewer.Common, Microsoft.ReportViewer.DataVisualization, Microsoft.ReportViewer.ProcessingObjectModel) must be excluded from ILRepack's InputAssemblies merge list, otherwise the merged/internalized copy breaks the un-merged assembly's external reference to it (FileNotFoundException at runtime, e.g. via ReportRuntime/EnsureExecutionSession). This has already bitten Microsoft.CodeAnalysis*, Microsoft.ReportViewer.ProcessingObjectModel, and Microsoft.ReportViewer.DataVisualization.

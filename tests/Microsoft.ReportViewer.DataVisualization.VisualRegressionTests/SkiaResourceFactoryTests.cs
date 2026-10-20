@@ -450,5 +450,31 @@ namespace Microsoft.ReportViewer.DataVisualization.VisualRegressionTests
             Assert.IsNotNull(pen);
             Assert.IsNotNull(pen.NativePaint.Shader);
         }
+
+        // GDI+ draws point-sized fonts at the target bitmap's resolution, so a chart rendered at
+        // 3x DPI (as PDF/Word request) gets 3x larger text in pixels. Skia used a fixed 96 DPI,
+        // which made Linux chart titles/legends ~3x too small in exported PDFs.
+        [TestMethod]
+        public void MeasureString_ScalesWithBoundSurfaceDpi()
+        {
+            using var font = Factory.CreateFont("Arial", 12f, FontStyle.Bold);
+
+            var graphics96 = new SkiaChartGraphics();
+            using (var surface96 = new SkiaRenderSurface(100, 100, 96f))
+            {
+                graphics96.BindSurface(surface96);
+            }
+            var graphics288 = new SkiaChartGraphics();
+            using (var surface288 = new SkiaRenderSurface(100, 100, 288f))
+            {
+                graphics288.BindSurface(surface288);
+            }
+
+            SizeF at96 = graphics96.MeasureString("teste", font);
+            SizeF at288 = graphics288.MeasureString("teste", font);
+
+            Assert.AreEqual(3.0, at288.Width / at96.Width, 0.05);
+            Assert.AreEqual(3.0, at288.Height / at96.Height, 0.05);
+        }
     }
 }
