@@ -134,7 +134,7 @@ namespace Microsoft.ReportViewer.Chart.Rdl.Tests
             using SKBitmap bitmap = new SKBitmap(100, 100);
             using SKCanvas canvas = new SKCanvas(bitmap);
 
-            Assert.ThrowsException<InvalidOperationException>(() => SkiaTextRunRasterizer.Draw(canvas, run, 0f, 0f));
+            Assert.ThrowsExactly<InvalidOperationException>(() => SkiaTextRunRasterizer.Draw(canvas, run, 0f, 0f));
         }
     }
 }

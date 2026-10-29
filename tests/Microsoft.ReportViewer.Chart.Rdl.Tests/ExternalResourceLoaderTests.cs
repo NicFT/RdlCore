@@ -87,7 +87,7 @@ namespace Microsoft.ReportViewer.Chart.Rdl.Tests
 
             try
             {
-                Assert.ThrowsException<TaskCanceledException>(() =>
+                Assert.ThrowsExactly<TaskCanceledException>(() =>
                     ExternalResourceLoader.GetExternalResource(server.Url, impersonate: false, null, null, null, 30, ExternalResourceLoader.MaxResourceSizeUnlimited, abortHelper, out _, out _));
             }
             finally

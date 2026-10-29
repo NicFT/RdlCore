@@ -98,7 +98,7 @@ namespace Microsoft.ReportingServices.OnDemandReportRendering
                     }
 
                     SKImageInfo info = new SKImageInfo(width, height, sourceBitmap.ColorType, sourceBitmap.AlphaType);
-                    using (SKBitmap scaled = sourceBitmap.Resize(info, SKFilterQuality.High))
+                    using (SKBitmap scaled = sourceBitmap.Resize(info, new SKSamplingOptions(SKCubicResampler.Mitchell)))
                     {
                         if (scaled == null)
                         {

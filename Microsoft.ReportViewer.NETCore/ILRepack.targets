@@ -30,7 +30,8 @@
         ExcludeInternalizeSerializable="true" 
         Parallel="true" 
         InputAssemblies="@(InputAssemblies)" 
-        OutputFile="$(TargetPath)" 
+        OutputFile="$(TargetPath)"
+        KeyFile="$(MSBuildProjectDirectory)\$(AssemblyOriginatorKeyFile)"
         LibraryPath="$(TargetDir)"
         TargetKind="SameAsPrimaryAssembly" /> 
   </Target> 

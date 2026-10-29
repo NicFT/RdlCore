@@ -69,8 +69,8 @@ namespace Microsoft.ReportingServices.Rendering.RichText
 			};
 			using SKTextBlobBuilder builder = new SKTextBlobBuilder();
 			SKPositionedRunBuffer buffer = builder.AllocatePositionedRun(cachedFont.SkiaFont.Font, glyphCount);
-			Span<ushort> glyphs = buffer.GetGlyphSpan();
-			Span<SKPoint> positions = buffer.GetPositionSpan();
+			Span<ushort> glyphs = buffer.Glyphs;
+			Span<SKPoint> positions = buffer.Positions;
 			int[] advances = glyphData.Advances;
 			GOFFSET[] offsets = glyphData.GOffsets;
 			float penX = x;
